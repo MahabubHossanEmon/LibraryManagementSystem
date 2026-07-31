@@ -94,6 +94,7 @@ export default function Dashboard() {
           icon={BookOpen}
           color="indigo"
           trend="+12%"
+          href="/books"
         />
         <KpiCard
           title="Available Copies"
@@ -102,6 +103,7 @@ export default function Dashboard() {
           icon={CheckCircle2}
           color="emerald"
           trend="In Stock"
+          href="/books"
         />
         <KpiCard
           title="Active Loans"
@@ -110,6 +112,7 @@ export default function Dashboard() {
           icon={BookmarkCheck}
           color="amber"
           trend="Active"
+          href="/borrows"
         />
         <KpiCard
           title="Overdue Returns"
@@ -118,6 +121,7 @@ export default function Dashboard() {
           icon={AlertTriangle}
           color="rose"
           trend="Action Needed"
+          href="/borrows"
         />
       </div>
 
@@ -129,6 +133,7 @@ export default function Dashboard() {
           subtitle="Active library hubs"
           icon={Building2}
           color="violet"
+          href="/branches"
         />
         <KpiCard
           title="Pending Holds"
@@ -136,6 +141,7 @@ export default function Dashboard() {
           subtitle="In reservation queue"
           icon={Clock}
           color="indigo"
+          href="/reservations"
         />
         <KpiCard
           title="Registered Members"
@@ -143,6 +149,7 @@ export default function Dashboard() {
           subtitle="Active library cards"
           icon={Users}
           color="emerald"
+          href="/members"
         />
       </div>
 
@@ -166,15 +173,19 @@ export default function Dashboard() {
           <div className="divide-y divide-zinc-800/80">
             {recentBooks.length > 0 ? (
               recentBooks.map((book) => (
-                <div key={book.id} className="py-3 flex items-center justify-between first:pt-0 last:pb-0">
+                <Link
+                  key={book.id}
+                  href="/books"
+                  className="py-3 px-2 flex items-center justify-between rounded-xl hover:bg-zinc-800/50 transition-colors group cursor-pointer"
+                >
                   <div>
-                    <h4 className="text-sm font-semibold text-white">{book.title}</h4>
+                    <h4 className="text-sm font-semibold text-white group-hover:text-indigo-300 transition-colors">{book.title}</h4>
                     <p className="text-xs text-zinc-400">{book.author} • ISBN: {book.isbn}</p>
                   </div>
-                  <span className="text-xs font-medium px-2.5 py-1 rounded-full bg-indigo-500/10 text-indigo-400 border border-indigo-500/20">
+                  <span className="text-xs font-medium px-2.5 py-1 rounded-full bg-indigo-500/10 text-indigo-400 border border-indigo-500/20 group-hover:border-indigo-500/40">
                     {book.availableCopies} Copies Left
                   </span>
-                </div>
+                </Link>
               ))
             ) : (
               <div className="py-6 text-center text-xs text-zinc-500">
@@ -202,9 +213,13 @@ export default function Dashboard() {
           <div className="divide-y divide-zinc-800/80">
             {recentBorrows.length > 0 ? (
               recentBorrows.map((record) => (
-                <div key={record.id} className="py-3 flex items-center justify-between first:pt-0 last:pb-0">
+                <Link
+                  key={record.id}
+                  href="/borrows"
+                  className="py-3 px-2 flex items-center justify-between rounded-xl hover:bg-zinc-800/50 transition-colors group cursor-pointer"
+                >
                   <div>
-                    <h4 className="text-sm font-semibold text-white">{record.bookTitle || 'Library Book'}</h4>
+                    <h4 className="text-sm font-semibold text-white group-hover:text-indigo-300 transition-colors">{record.bookTitle || 'Library Book'}</h4>
                     <p className="text-xs text-zinc-400">Borrowed by {record.userName || 'Member'}</p>
                   </div>
                   <span
@@ -216,7 +231,7 @@ export default function Dashboard() {
                   >
                     {record.statusName || 'Active'}
                   </span>
-                </div>
+                </Link>
               ))
             ) : (
               <div className="py-6 text-center text-xs text-zinc-500">
