@@ -3,8 +3,8 @@
 import React, { useState } from 'react';
 import { useRouter } from 'next/navigation';
 import Link from 'next/link';
-import { Library, Lock, Mail, ArrowRight, ShieldCheck, UserCheck, KeyRound } from 'lucide-react';
-import { useAuth, DEMO_USERS } from '@/lib/auth-context';
+import { Library, Lock, Mail, ArrowRight, KeyRound, AlertCircle } from 'lucide-react';
+import { useAuth } from '@/lib/auth-context';
 import { useToast } from '@/components/toast';
 import { Role } from '@/lib/types';
 
@@ -16,10 +16,14 @@ export default function LoginPage() {
   const [email, setEmail] = useState('admin@lms.com');
   const [password, setPassword] = useState('admin123');
   const [isSubmitting, setIsSubmitting] = useState(false);
+  const [errorMsg, setErrorMsg] = useState<string | null>(null);
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
+    setErrorMsg(null);
+
     if (!email || !password) {
+      setErrorMsg('Please enter both email and password.');
       showToast('Please enter both email and password', 'error');
       return;
     }
@@ -30,7 +34,8 @@ export default function LoginPage() {
       showToast('Signed in successfully!', 'success');
       router.push('/');
     } catch (err: unknown) {
-      const msg = err instanceof Error ? err.message : 'Invalid credentials';
+      const msg = err instanceof Error ? err.message : 'Invalid credentials. Please check your email and password.';
+      setErrorMsg(msg);
       showToast(msg, 'error');
     } finally {
       setIsSubmitting(false);
@@ -72,6 +77,17 @@ export default function LoginPage() {
           ))}
         </div>
       </div>
+
+      {/* Error Alert Banner */}
+      {errorMsg && (
+        <div className="bg-rose-500/10 border border-rose-500/30 rounded-2xl p-4 flex items-start gap-3 text-rose-400 animate-in fade-in slide-in-from-top-1">
+          <AlertCircle className="w-5 h-5 shrink-0 mt-0.5" />
+          <div className="text-xs space-y-1">
+            <p className="font-bold text-rose-300">Authentication Failed</p>
+            <p className="text-rose-400/90 leading-relaxed">{errorMsg}</p>
+          </div>
+        </div>
+      )}
 
       {/* Login Form */}
       <form onSubmit={handleSubmit} className="bg-zinc-900/80 border border-zinc-800 rounded-2xl p-6 space-y-4 shadow-xl">

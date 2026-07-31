@@ -53,15 +53,12 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
         setToken(storedToken);
         setUser(JSON.parse(storedUser));
       } else {
-        // Default to Admin demo user for smooth experience
-        const defaultUser = DEMO_USERS.Admin;
-        setUser(defaultUser);
-        setToken('demo-token-admin');
-        localStorage.setItem('lms_token', 'demo-token-admin');
-        localStorage.setItem('lms_user', JSON.stringify(defaultUser));
+        setUser(null);
+        setToken(null);
       }
     } catch {
-      // fallback
+      setUser(null);
+      setToken(null);
     } finally {
       setIsLoading(false);
     }
@@ -80,17 +77,27 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
       setUser(authUser);
       localStorage.setItem('lms_token', res.token);
       localStorage.setItem('lms_user', JSON.stringify(authUser));
-    } catch (err) {
-      // If backend login fails, match demo account fallback for resilience
-      const matchedDemo = Object.values(DEMO_USERS).find(u => u.email.toLowerCase() === email.toLowerCase()) || {
-        userId: '00000000-0000-0000-0000-000000000001',
-        email,
-        role: 'Admin' as Role,
-      };
-      setToken('demo-jwt-token');
-      setUser(matchedDemo);
-      localStorage.setItem('lms_token', 'demo-jwt-token');
-      localStorage.setItem('lms_user', JSON.stringify(matchedDemo));
+    } catch (err: unknown) {
+      // Check if credentials match known demo accounts for offline/demo resilience
+      const matchedDemo = Object.values(DEMO_USERS).find(
+        (u) => u.email.toLowerCase() === email.trim().toLowerCase()
+      );
+      if (matchedDemo && (passwordHash === 'admin123' || passwordHash === 'demo123' || passwordHash === 'password')) {
+        const demoToken = `demo-token-${matchedDemo.role.toLowerCase()}`;
+        setToken(demoToken);
+        setUser(matchedDemo);
+        localStorage.setItem('lms_token', demoToken);
+        localStorage.setItem('lms_user', JSON.stringify(matchedDemo));
+        return;
+      }
+
+      // Otherwise, clear state and throw the error to be displayed on the login page
+      setUser(null);
+      setToken(null);
+      localStorage.removeItem('lms_token');
+      localStorage.removeItem('lms_user');
+      const errorMsg = err instanceof Error ? err.message : 'Invalid email or password';
+      throw new Error(errorMsg);
     } finally {
       setIsLoading(false);
     }
@@ -110,6 +117,9 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     setToken(null);
     localStorage.removeItem('lms_token');
     localStorage.removeItem('lms_user');
+    if (typeof window !== 'undefined') {
+      window.location.href = '/login';
+    }
   }, []);
 
   const value = useMemo(
