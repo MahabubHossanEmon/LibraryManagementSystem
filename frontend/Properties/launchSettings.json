@@ -1,0 +1,14 @@
+{
+  "profiles": {
+    "localhost (Chrome)": {
+      "commandName": "Project",
+      "launchBrowser": true,
+      "launchUrl": "http://localhost:3000"
+    },
+    "localhost (Edge)": {
+      "commandName": "Project",
+      "launchBrowser": true,
+      "launchUrl": "http://localhost:3000"
+    }
+  }
+}

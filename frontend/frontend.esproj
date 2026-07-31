@@ -4,5 +4,7 @@
     <JavaScriptTestRoot>src\</JavaScriptTestRoot>
     <ShouldRunBuildScript>false</ShouldRunBuildScript>
     <BuildOutputFolder>$(MSBuildProjectDirectory)\.next</BuildOutputFolder>
+    <LaunchUrl>http://localhost:3000</LaunchUrl>
+    <ScriptFramework>React</ScriptFramework>
   </PropertyGroup>
 </Project>
