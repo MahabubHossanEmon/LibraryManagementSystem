@@ -1,0 +1,326 @@
+@page "/reservations"
+@inject HttpClient Http
+@using System.Net.Http.Json
+
+<PageTitle>Book Reservations - LMS</PageTitle>
+
+<div class="container fade-in-up py-4">
+    <div class="d-flex flex-column flex-md-row justify-content-between align-items-md-center mb-4 gap-3">
+        <div>
+            <h2 class="mb-1"><i class="bi bi-bookmark-star me-2 text-success"></i>Book Reservations</h2>
+            <p class="text-secondary mb-0">Manage hold requests, pending reservations, and cancellations.</p>
+        </div>
+        <div>
+            <button class="btn btn-primary premium-btn" @onclick="OpenReserveModal">
+                <i class="bi bi-plus-lg me-1"></i> New Reservation
+            </button>
+        </div>
+    </div>
+
+    @if (alertMessage != null)
+    {
+        <div class="alert @(isErrorAlert ? "alert-danger" : "alert-success") glass-panel alert-dismissible fade show mb-4" role="alert">
+            @alertMessage
+            <button type="button" class="btn-close btn-close-white" @onclick="() => alertMessage = null"></button>
+        </div>
+    }
+
+    <!-- Search & Filter Controls -->
+    <div class="card glass-panel p-3 mb-4">
+        <div class="row g-3 align-items-center">
+            <div class="col-md-6">
+                <div class="input-group">
+                    <span class="input-group-text bg-dark text-white border-secondary"><i class="bi bi-search"></i></span>
+                    <input type="text" class="form-control bg-dark text-white border-secondary" placeholder="Search by book title or member name..." @bind="searchQuery" @bind:event="oninput" />
+                </div>
+            </div>
+            <div class="col-md-6">
+                <div class="btn-group w-100" role="group">
+                    <button type="button" class="btn @(statusFilter == "All" ? "btn-primary" : "btn-outline-secondary")" @onclick='() => statusFilter = "All"'>All</button>
+                    <button type="button" class="btn @(statusFilter == "Pending" ? "btn-warning text-dark" : "btn-outline-secondary")" @onclick='() => statusFilter = "Pending"'>Pending</button>
+                    <button type="button" class="btn @(statusFilter == "Fulfilled" ? "btn-success" : "btn-outline-secondary")" @onclick='() => statusFilter = "Fulfilled"'>Fulfilled</button>
+                    <button type="button" class="btn @(statusFilter == "Cancelled" ? "btn-danger" : "btn-outline-secondary")" @onclick='() => statusFilter = "Cancelled"'>Cancelled</button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    @if (reservations == null)
+    {
+        <div class="d-flex justify-content-center py-5">
+            <div class="spinner-border text-light" role="status">
+                <span class="visually-hidden">Loading...</span>
+            </div>
+        </div>
+    }
+    else if (!FilteredReservations.Any())
+    {
+        <div class="alert alert-info glass-panel text-center py-4">
+            <i class="bi bi-info-circle display-6 d-block mb-2 text-info"></i>
+            No reservations found.
+        </div>
+    }
+    else
+    {
+        <div class="table-responsive glass-panel p-3 rounded">
+            <table class="table table-hover text-white align-middle mb-0">
+                <thead>
+                    <tr>
+                        <th>Book Title</th>
+                        <th>Member</th>
+                        <th>Reservation Date</th>
+                        <th>Status</th>
+                        <th>Actions</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    @foreach (var res in FilteredReservations)
+                    {
+                        <tr>
+                            <td class="fw-bold text-white">@res.BookTitle</td>
+                            <td>@res.UserName</td>
+                            <td>@res.ReservationDate.ToLocalTime().ToString("g")</td>
+                            <td>
+                                @if (res.StatusName == "Pending")
+                                {
+                                    <span class="badge bg-warning text-dark">Pending</span>
+                                }
+                                else if (res.StatusName == "Fulfilled")
+                                {
+                                    <span class="badge bg-success">Fulfilled</span>
+                                }
+                                else
+                                {
+                                    <span class="badge bg-danger">Cancelled</span>
+                                }
+                            </td>
+                            <td>
+                                @if (res.StatusName == "Pending")
+                                {
+                                    <button class="btn btn-sm btn-outline-danger" @onclick="() => CancelReservation(res.Id)">
+                                        <i class="bi bi-x-circle me-1"></i> Cancel
+                                    </button>
+                                }
+                                else
+                                {
+                                    <span class="text-secondary small">Closed</span>
+                                }
+                            </td>
+                        </tr>
+                    }
+                </tbody>
+            </table>
+        </div>
+    }
+</div>
+
+<!-- New Reservation Modal -->
+@if (showModal)
+{
+    <div class="modal fade show d-block" style="background: rgba(0,0,0,0.7);" tabindex="-1">
+        <div class="modal-dialog modal-dialog-centered">
+            <div class="modal-content glass-panel text-white">
+                <div class="modal-header border-secondary">
+                    <h5 class="modal-title"><i class="bi bi-bookmark-plus me-2"></i>Create Book Reservation</h5>
+                    <button type="button" class="btn-close btn-close-white" @onclick="CloseModal"></button>
+                </div>
+                <div class="modal-body">
+                    <div class="mb-3">
+                        <label class="form-label fw-bold">Select Member</label>
+                        <select class="form-select bg-dark text-white border-secondary" @bind="selectedUserId">
+                            <option value="@Guid.Empty">-- Select Member --</option>
+                            @if (availableUsers != null)
+                            {
+                                @foreach (var user in availableUsers)
+                                {
+                                    <option value="@user.Id">@user.FullName (@user.Email)</option>
+                                }
+                            }
+                        </select>
+                    </div>
+
+                    <div class="mb-3">
+                        <label class="form-label fw-bold">Select Book</label>
+                        <select class="form-select bg-dark text-white border-secondary" @bind="selectedBookId">
+                            <option value="@Guid.Empty">-- Select Book --</option>
+                            @if (availableBooks != null)
+                            {
+                                @foreach (var book in availableBooks)
+                                {
+                                    <option value="@book.Id">@book.Title (By @book.Author)</option>
+                                }
+                            }
+                        </select>
+                    </div>
+                </div>
+                <div class="modal-footer border-secondary">
+                    <button type="button" class="btn btn-secondary" @onclick="CloseModal">Cancel</button>
+                    <button type="button" class="btn btn-primary premium-btn" @onclick="SubmitReservation" disabled="@(selectedBookId == Guid.Empty || selectedUserId == Guid.Empty)">
+                        Reserve Book
+                    </button>
+                </div>
+            </div>
+        </div>
+    </div>
+}
+
+@code {
+    private List<ReservationDto>? reservations;
+    private List<BookDto>? availableBooks;
+    private List<UserDto>? availableUsers;
+
+    private string searchQuery = string.Empty;
+    private string statusFilter = "All";
+
+    private bool showModal = false;
+    private Guid selectedBookId = Guid.Empty;
+    private Guid selectedUserId = Guid.Empty;
+
+    private string? alertMessage;
+    private bool isErrorAlert = false;
+
+    private IEnumerable<ReservationDto> FilteredReservations
+    {
+        get
+        {
+            if (reservations == null) return Enumerable.Empty<ReservationDto>();
+
+            var result = reservations.AsEnumerable();
+
+            if (!string.IsNullOrWhiteSpace(searchQuery))
+            {
+                var q = searchQuery.Trim().ToLower();
+                result = result.Where(r => r.BookTitle.ToLower().Contains(q) || r.UserName.ToLower().Contains(q));
+            }
+
+            if (statusFilter != "All")
+            {
+                result = result.Where(r => r.StatusName.Equals(statusFilter, StringComparison.OrdinalIgnoreCase));
+            }
+
+            return result;
+        }
+    }
+
+    protected override async Task OnInitializedAsync()
+    {
+        await LoadReservations();
+    }
+
+    private async Task LoadReservations()
+    {
+        try
+        {
+            reservations = await Http.GetFromJsonAsync<List<ReservationDto>>("api/reservations");
+        }
+        catch (Exception ex)
+        {
+            SetAlert($"Failed to load reservations: {ex.Message}", true);
+            reservations = new List<ReservationDto>();
+        }
+    }
+
+    private async Task OpenReserveModal()
+    {
+        selectedBookId = Guid.Empty;
+        selectedUserId = Guid.Empty;
+        showModal = true;
+        try
+        {
+            availableBooks = await Http.GetFromJsonAsync<List<BookDto>>("api/books");
+            availableUsers = await Http.GetFromJsonAsync<List<UserDto>>("api/users");
+            if (availableUsers != null && availableUsers.Any())
+            {
+                selectedUserId = availableUsers.First().Id;
+            }
+        }
+        catch (Exception ex)
+        {
+            SetAlert($"Error loading modal options: {ex.Message}", true);
+        }
+    }
+
+    private void CloseModal()
+    {
+        showModal = false;
+    }
+
+    private async Task SubmitReservation()
+    {
+        if (selectedBookId == Guid.Empty || selectedUserId == Guid.Empty) return;
+
+        try
+        {
+            var response = await Http.PostAsJsonAsync("api/reservations", new { BookId = selectedBookId, UserId = selectedUserId });
+            if (response.IsSuccessStatusCode)
+            {
+                SetAlert("Reservation created successfully!", false);
+                showModal = false;
+                await LoadReservations();
+            }
+            else
+            {
+                var content = await response.Content.ReadAsStringAsync();
+                SetAlert($"Error: {content}", true);
+            }
+        }
+        catch (Exception ex)
+        {
+            SetAlert($"Exception creating reservation: {ex.Message}", true);
+        }
+    }
+
+    private async Task CancelReservation(Guid reservationId)
+    {
+        try
+        {
+            var response = await Http.PostAsync($"api/reservations/{reservationId}/cancel", null);
+            if (response.IsSuccessStatusCode)
+            {
+                SetAlert("Reservation cancelled successfully!", false);
+                await LoadReservations();
+            }
+            else
+            {
+                SetAlert("Failed to cancel reservation.", true);
+            }
+        }
+        catch (Exception ex)
+        {
+            SetAlert($"Error cancelling reservation: {ex.Message}", true);
+        }
+    }
+
+    private void SetAlert(string message, bool isError)
+    {
+        alertMessage = message;
+        isErrorAlert = isError;
+    }
+
+    public class ReservationDto
+    {
+        public Guid Id { get; set; }
+        public Guid BookId { get; set; }
+        public string BookTitle { get; set; } = string.Empty;
+        public Guid UserId { get; set; }
+        public string UserName { get; set; } = string.Empty;
+        public DateTime ReservationDate { get; set; }
+        public string StatusName { get; set; } = string.Empty;
+    }
+
+    public class BookDto
+    {
+        public Guid Id { get; set; }
+        public string Title { get; set; } = string.Empty;
+        public string Author { get; set; } = string.Empty;
+    }
+
+    public class UserDto
+    {
+        public Guid Id { get; set; }
+        public string Email { get; set; } = string.Empty;
+        public string FirstName { get; set; } = string.Empty;
+        public string LastName { get; set; } = string.Empty;
+        public string FullName => $"{FirstName} {LastName}".Trim();
+    }
+}

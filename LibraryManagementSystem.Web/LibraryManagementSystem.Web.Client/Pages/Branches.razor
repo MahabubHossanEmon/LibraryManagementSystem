@@ -1,0 +1,411 @@
+@page "/branches"
+@inject HttpClient Http
+@using System.Net.Http.Json
+
+<PageTitle>Library Branches - LMS</PageTitle>
+
+<div class="container fade-in-up py-4">
+    <div class="d-flex flex-column flex-md-row justify-content-between align-items-md-center mb-4 gap-3">
+        <div>
+            <h2 class="mb-1"><i class="bi bi-building me-2 text-info"></i>Library Branches</h2>
+            <p class="text-secondary mb-0">Manage branch locations, contact details, and branch inventory.</p>
+        </div>
+        <div>
+            <button class="btn btn-primary premium-btn" @onclick="OpenCreateModal">
+                <i class="bi bi-plus-lg me-1"></i> Add Branch
+            </button>
+        </div>
+    </div>
+
+    @if (alertMessage != null)
+    {
+        <div class="alert @(isErrorAlert ? "alert-danger" : "alert-success") glass-panel alert-dismissible fade show mb-4" role="alert">
+            @alertMessage
+            <button type="button" class="btn-close btn-close-white" @onclick="() => alertMessage = null"></button>
+        </div>
+    }
+
+    <!-- Search Bar -->
+    <div class="card glass-panel p-3 mb-4">
+        <div class="input-group">
+            <span class="input-group-text bg-dark text-white border-secondary"><i class="bi bi-search"></i></span>
+            <input type="text" class="form-control bg-dark text-white border-secondary" placeholder="Search branches by name or address..." @bind="searchQuery" @bind:event="oninput" />
+        </div>
+    </div>
+
+    @if (branches == null)
+    {
+        <div class="d-flex justify-content-center py-5">
+            <div class="spinner-border text-light" role="status">
+                <span class="visually-hidden">Loading...</span>
+            </div>
+        </div>
+    }
+    else if (!FilteredBranches.Any())
+    {
+        <div class="alert alert-info glass-panel text-center py-4">
+            <i class="bi bi-info-circle display-6 d-block mb-2 text-info"></i>
+            No branches found matching your search.
+        </div>
+    }
+    else
+    {
+        <div class="row g-4">
+            @foreach (var branch in FilteredBranches)
+            {
+                <div class="col-md-6 col-lg-4">
+                    <div class="card premium-card glass-panel h-100 d-flex flex-column justify-content-between">
+                        <div class="card-body">
+                            <div class="d-flex justify-content-between align-items-center mb-3">
+                                <h4 class="card-title text-white fw-bold mb-0">@branch.Name</h4>
+                                <div>
+                                    <button class="btn btn-sm btn-outline-warning me-1" @onclick="() => OpenEditModal(branch)">
+                                        <i class="bi bi-pencil"></i>
+                                    </button>
+                                    <button class="btn btn-sm btn-outline-danger" @onclick="() => OpenDeleteModal(branch)">
+                                        <i class="bi bi-trash"></i>
+                                    </button>
+                                </div>
+                            </div>
+                            
+                            <p class="card-text text-secondary mb-2">
+                                <i class="bi bi-geo-alt me-2 text-info"></i>@branch.Address
+                            </p>
+                            <p class="card-text text-secondary mb-0">
+                                <i class="bi bi-telephone me-2 text-info"></i>@branch.ContactNumber
+                            </p>
+                        </div>
+                        <div class="card-footer bg-transparent border-top border-secondary text-end py-3">
+                            <button class="btn btn-sm btn-outline-light premium-btn" @onclick="() => OpenInventoryModal(branch)">
+                                <i class="bi bi-box-seam me-1"></i> View Inventory
+                            </button>
+                        </div>
+                    </div>
+                </div>
+            }
+        </div>
+    }
+</div>
+
+<!-- Create / Edit Branch Modal -->
+@if (showBranchModal)
+{
+    <div class="modal fade show d-block" style="background: rgba(0,0,0,0.7);" tabindex="-1">
+        <div class="modal-dialog modal-dialog-centered">
+            <div class="modal-content glass-panel text-white">
+                <div class="modal-header border-secondary">
+                    <h5 class="modal-title">
+                        <i class="bi @(isEditMode ? "bi-pencil-square" : "bi-plus-circle") me-2"></i>
+                        @(isEditMode ? "Edit Branch" : "Add New Branch")
+                    </h5>
+                    <button type="button" class="btn-close btn-close-white" @onclick="CloseBranchModal"></button>
+                </div>
+                <div class="modal-body">
+                    <div class="mb-3">
+                        <label class="form-label fw-bold">Branch Name</label>
+                        <input type="text" class="form-control bg-dark text-white border-secondary" @bind="branchForm.Name" placeholder="e.g. Central Library Branch" />
+                    </div>
+                    <div class="mb-3">
+                        <label class="form-label fw-bold">Address</label>
+                        <input type="text" class="form-control bg-dark text-white border-secondary" @bind="branchForm.Address" placeholder="e.g. 123 Main St, Cityville" />
+                    </div>
+                    <div class="mb-3">
+                        <label class="form-label fw-bold">Contact Number</label>
+                        <input type="text" class="form-control bg-dark text-white border-secondary" @bind="branchForm.ContactNumber" placeholder="e.g. +1 555-0199" />
+                    </div>
+                </div>
+                <div class="modal-footer border-secondary">
+                    <button type="button" class="btn btn-secondary" @onclick="CloseBranchModal">Cancel</button>
+                    <button type="button" class="btn btn-primary premium-btn" @onclick="SaveBranch" disabled="@(string.IsNullOrWhiteSpace(branchForm.Name))">
+                        Save Branch
+                    </button>
+                </div>
+            </div>
+        </div>
+    </div>
+}
+
+<!-- Delete Confirmation Modal -->
+@if (showDeleteModal && selectedBranchForDelete != null)
+{
+    <div class="modal fade show d-block" style="background: rgba(0,0,0,0.7);" tabindex="-1">
+        <div class="modal-dialog modal-dialog-centered modal-sm">
+            <div class="modal-content glass-panel text-white">
+                <div class="modal-header border-secondary">
+                    <h5 class="modal-title text-danger"><i class="bi bi-exclamation-triangle me-2"></i>Delete Branch</h5>
+                    <button type="button" class="btn-close btn-close-white" @onclick="CloseDeleteModal"></button>
+                </div>
+                <div class="modal-body">
+                    <p>Are you sure you want to delete <strong>@selectedBranchForDelete.Name</strong>?</p>
+                </div>
+                <div class="modal-footer border-secondary">
+                    <button type="button" class="btn btn-secondary" @onclick="CloseDeleteModal">Cancel</button>
+                    <button type="button" class="btn btn-danger" @onclick="ConfirmDelete">Delete</button>
+                </div>
+            </div>
+        </div>
+    </div>
+}
+
+<!-- Inventory Modal -->
+@if (showInventoryModal && selectedBranchForInventory != null)
+{
+    <div class="modal fade show d-block" style="background: rgba(0,0,0,0.7);" tabindex="-1">
+        <div class="modal-dialog modal-dialog-centered modal-lg">
+            <div class="modal-content glass-panel text-white">
+                <div class="modal-header border-secondary">
+                    <h5 class="modal-title"><i class="bi bi-box-seam me-2"></i>Inventory: @selectedBranchForInventory.Name</h5>
+                    <button type="button" class="btn-close btn-close-white" @onclick="CloseInventoryModal"></button>
+                </div>
+                <div class="modal-body">
+                    @if (branchBooks == null)
+                    {
+                        <div class="d-flex justify-content-center py-4">
+                            <div class="spinner-border text-light" role="status">
+                                <span class="visually-hidden">Loading...</span>
+                            </div>
+                        </div>
+                    }
+                    else if (!branchBooks.Any())
+                    {
+                        <div class="alert alert-info glass-panel">No books currently hosted at this branch.</div>
+                    }
+                    else
+                    {
+                        <div class="table-responsive">
+                            <table class="table table-hover text-white align-middle mb-0">
+                                <thead>
+                                    <tr>
+                                        <th>Title</th>
+                                        <th>Author</th>
+                                        <th>ISBN</th>
+                                        <th>Total</th>
+                                        <th>Available</th>
+                                    </tr>
+                                </thead>
+                                <tbody>
+                                    @foreach (var book in branchBooks)
+                                    {
+                                        <tr>
+                                            <td class="fw-bold">@book.Title</td>
+                                            <td>@book.Author</td>
+                                            <td>@book.ISBN</td>
+                                            <td>@book.TotalCopies</td>
+                                            <td class="@(book.AvailableCopies > 0 ? "text-success" : "text-danger") fw-bold">@book.AvailableCopies</td>
+                                        </tr>
+                                    }
+                                </tbody>
+                            </table>
+                        </div>
+                    }
+                </div>
+                <div class="modal-footer border-secondary">
+                    <button type="button" class="btn btn-secondary" @onclick="CloseInventoryModal">Close</button>
+                </div>
+            </div>
+        </div>
+    </div>
+}
+
+@code {
+    private List<BranchDto>? branches;
+    private string searchQuery = string.Empty;
+
+    private bool showBranchModal = false;
+    private bool isEditMode = false;
+    private BranchFormModel branchForm = new();
+
+    private bool showDeleteModal = false;
+    private BranchDto? selectedBranchForDelete;
+
+    private bool showInventoryModal = false;
+    private BranchDto? selectedBranchForInventory;
+    private List<BookDto>? branchBooks;
+
+    private string? alertMessage;
+    private bool isErrorAlert = false;
+
+    private IEnumerable<BranchDto> FilteredBranches
+    {
+        get
+        {
+            if (branches == null) return Enumerable.Empty<BranchDto>();
+            if (string.IsNullOrWhiteSpace(searchQuery)) return branches;
+
+            var q = searchQuery.Trim().ToLower();
+            return branches.Where(b => b.Name.ToLower().Contains(q) || b.Address.ToLower().Contains(q));
+        }
+    }
+
+    protected override async Task OnInitializedAsync()
+    {
+        await LoadBranches();
+    }
+
+    private async Task LoadBranches()
+    {
+        try
+        {
+            branches = await Http.GetFromJsonAsync<List<BranchDto>>("api/branches");
+        }
+        catch (Exception ex)
+        {
+            SetAlert($"Error loading branches: {ex.Message}", true);
+        }
+    }
+
+    private void OpenCreateModal()
+    {
+        isEditMode = false;
+        branchForm = new BranchFormModel();
+        showBranchModal = true;
+    }
+
+    private void OpenEditModal(BranchDto branch)
+    {
+        isEditMode = true;
+        branchForm = new BranchFormModel
+        {
+            Id = branch.Id,
+            Name = branch.Name,
+            Address = branch.Address,
+            ContactNumber = branch.ContactNumber
+        };
+        showBranchModal = true;
+    }
+
+    private void CloseBranchModal()
+    {
+        showBranchModal = false;
+    }
+
+    private async Task SaveBranch()
+    {
+        try
+        {
+            if (isEditMode)
+            {
+                var response = await Http.PutAsJsonAsync($"api/branches/{branchForm.Id}", branchForm);
+                if (response.IsSuccessStatusCode)
+                {
+                    SetAlert("Branch updated successfully!", false);
+                    showBranchModal = false;
+                    await LoadBranches();
+                }
+                else
+                {
+                    SetAlert("Failed to update branch.", true);
+                }
+            }
+            else
+            {
+                var response = await Http.PostAsJsonAsync("api/branches", branchForm);
+                if (response.IsSuccessStatusCode)
+                {
+                    SetAlert("Branch added successfully!", false);
+                    showBranchModal = false;
+                    await LoadBranches();
+                }
+                else
+                {
+                    SetAlert("Failed to add branch.", true);
+                }
+            }
+        }
+        catch (Exception ex)
+        {
+            SetAlert($"Error saving branch: {ex.Message}", true);
+        }
+    }
+
+    private void OpenDeleteModal(BranchDto branch)
+    {
+        selectedBranchForDelete = branch;
+        showDeleteModal = true;
+    }
+
+    private void CloseDeleteModal()
+    {
+        showDeleteModal = false;
+        selectedBranchForDelete = null;
+    }
+
+    private async Task ConfirmDelete()
+    {
+        if (selectedBranchForDelete == null) return;
+        try
+        {
+            var response = await Http.DeleteAsync($"api/branches/{selectedBranchForDelete.Id}");
+            if (response.IsSuccessStatusCode)
+            {
+                SetAlert("Branch deleted successfully!", false);
+                CloseDeleteModal();
+                await LoadBranches();
+            }
+            else
+            {
+                SetAlert("Failed to delete branch.", true);
+            }
+        }
+        catch (Exception ex)
+        {
+            SetAlert($"Error deleting branch: {ex.Message}", true);
+        }
+    }
+
+    private async Task OpenInventoryModal(BranchDto branch)
+    {
+        selectedBranchForInventory = branch;
+        showInventoryModal = true;
+        branchBooks = null;
+        try
+        {
+            var allBooks = await Http.GetFromJsonAsync<List<BookDto>>("api/books");
+            branchBooks = allBooks?.Where(b => b.BranchId == branch.Id).ToList() ?? new List<BookDto>();
+        }
+        catch (Exception ex)
+        {
+            Console.WriteLine($"Error loading branch inventory: {ex.Message}");
+            branchBooks = new List<BookDto>();
+        }
+    }
+
+    private void CloseInventoryModal()
+    {
+        showInventoryModal = false;
+        selectedBranchForInventory = null;
+    }
+
+    private void SetAlert(string message, bool isError)
+    {
+        alertMessage = message;
+        isErrorAlert = isError;
+    }
+
+    public class BranchDto
+    {
+        public Guid Id { get; set; }
+        public string Name { get; set; } = string.Empty;
+        public string Address { get; set; } = string.Empty;
+        public string ContactNumber { get; set; } = string.Empty;
+    }
+
+    public class BookDto
+    {
+        public Guid Id { get; set; }
+        public string Title { get; set; } = string.Empty;
+        public string Author { get; set; } = string.Empty;
+        public string ISBN { get; set; } = string.Empty;
+        public int TotalCopies { get; set; }
+        public int AvailableCopies { get; set; }
+        public Guid BranchId { get; set; }
+    }
+
+    public class BranchFormModel
+    {
+        public Guid Id { get; set; }
+        public string Name { get; set; } = string.Empty;
+        public string Address { get; set; } = string.Empty;
+        public string ContactNumber { get; set; } = string.Empty;
+    }
+}

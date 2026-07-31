@@ -1,0 +1,198 @@
+@page "/"
+@inject HttpClient Http
+@using System.Net.Http.Json
+
+<PageTitle>Dashboard - Library Management System</PageTitle>
+
+<div class="container py-4">
+    <div class="row mb-4 fade-in-up">
+        <div class="col-12 d-flex justify-content-between align-items-center">
+            <div>
+                <h1 class="display-5 font-weight-bold mb-1"><i class="bi bi-speedometer2 text-primary me-2"></i>Library Dashboard</h1>
+                <p class="lead text-secondary mb-0">Overview of system operations, catalog, and activity metrics.</p>
+            </div>
+            <div>
+                <button class="btn btn-outline-light premium-btn btn-sm" @onclick="LoadDashboardStats">
+                    <i class="bi bi-arrow-clockwise me-1"></i> Refresh Stats
+                </button>
+            </div>
+        </div>
+    </div>
+
+    @if (loading)
+    {
+        <div class="d-flex justify-content-center py-5">
+            <div class="spinner-border text-primary" role="status" style="width: 3rem; height: 3rem;">
+                <span class="visually-hidden">Loading...</span>
+            </div>
+        </div>
+    }
+    else
+    {
+        <!-- Metric Cards -->
+        <div class="row g-4 mb-5">
+            <div class="col-md-6 col-lg-3 fade-in-up" style="animation-delay: 0.05s;">
+                <div class="card premium-card glass-panel h-100 p-3 border-start border-4 border-primary">
+                    <div class="d-flex justify-content-between align-items-center">
+                        <div>
+                            <span class="text-secondary small fw-bold text-uppercase">Total Titles</span>
+                            <h2 class="display-6 fw-bold my-1 text-white">@(stats?.TotalBooks ?? 0)</h2>
+                            <small class="text-info">@(stats?.AvailableCopies ?? 0) / @(stats?.TotalCopies ?? 0) copies available</small>
+                        </div>
+                        <div class="p-3 bg-primary bg-opacity-20 rounded-circle text-primary">
+                            <i class="bi bi-book display-6"></i>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <div class="col-md-6 col-lg-3 fade-in-up" style="animation-delay: 0.1s;">
+                <div class="card premium-card glass-panel h-100 p-3 border-start border-4 border-info">
+                    <div class="d-flex justify-content-between align-items-center">
+                        <div>
+                            <span class="text-secondary small fw-bold text-uppercase">Branches</span>
+                            <h2 class="display-6 fw-bold my-1 text-white">@(stats?.TotalBranches ?? 0)</h2>
+                            <small class="text-info">Active branches</small>
+                        </div>
+                        <div class="p-3 bg-info bg-opacity-20 rounded-circle text-info">
+                            <i class="bi bi-building display-6"></i>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <div class="col-md-6 col-lg-3 fade-in-up" style="animation-delay: 0.15s;">
+                <div class="card premium-card glass-panel h-100 p-3 border-start border-4 border-warning">
+                    <div class="d-flex justify-content-between align-items-center">
+                        <div>
+                            <span class="text-secondary small fw-bold text-uppercase">Active Borrows</span>
+                            <h2 class="display-6 fw-bold my-1 text-white">@(stats?.ActiveBorrows ?? 0)</h2>
+                            <small class="@((stats?.OverdueBorrows ?? 0) > 0 ? "text-danger fw-bold" : "text-secondary")">
+                                @(stats?.OverdueBorrows ?? 0) overdue
+                            </small>
+                        </div>
+                        <div class="p-3 bg-warning bg-opacity-20 rounded-circle text-warning">
+                            <i class="bi bi-journal-bookmark display-6"></i>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <div class="col-md-6 col-lg-3 fade-in-up" style="animation-delay: 0.2s;">
+                <div class="card premium-card glass-panel h-100 p-3 border-start border-4 border-success">
+                    <div class="d-flex justify-content-between align-items-center">
+                        <div>
+                            <span class="text-secondary small fw-bold text-uppercase">Reservations</span>
+                            <h2 class="display-6 fw-bold my-1 text-white">@(stats?.PendingReservations ?? 0)</h2>
+                            <small class="text-success">Pending holds</small>
+                        </div>
+                        <div class="p-3 bg-success bg-opacity-20 rounded-circle text-success">
+                            <i class="bi bi-bookmark-star display-6"></i>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Quick Action Shortcuts -->
+        <div class="row g-4 mb-4">
+            <div class="col-lg-8 fade-in-up" style="animation-delay: 0.25s;">
+                <div class="card glass-panel p-4 h-100">
+                    <h4 class="mb-3 text-white"><i class="bi bi-lightning-charge me-2 text-warning"></i>Quick Management Shortcuts</h4>
+                    <div class="row g-3">
+                        <div class="col-md-6">
+                            <a href="/books" class="btn btn-outline-light w-100 p-3 text-start glass-panel d-flex align-items-center text-decoration-none">
+                                <i class="bi bi-plus-circle display-6 text-primary me-3"></i>
+                                <div>
+                                    <h6 class="mb-0 text-white fw-bold">Manage Books</h6>
+                                    <small class="text-secondary">Add, edit, or search book catalog</small>
+                                </div>
+                            </a>
+                        </div>
+                        <div class="col-md-6">
+                            <a href="/branches" class="btn btn-outline-light w-100 p-3 text-start glass-panel d-flex align-items-center text-decoration-none">
+                                <i class="bi bi-building-add display-6 text-info me-3"></i>
+                                <div>
+                                    <h6 class="mb-0 text-white fw-bold">Manage Branches</h6>
+                                    <small class="text-secondary">View inventory & add new branch</small>
+                                </div>
+                            </a>
+                        </div>
+                        <div class="col-md-6">
+                            <a href="/borrows" class="btn btn-outline-light w-100 p-3 text-start glass-panel d-flex align-items-center text-decoration-none">
+                                <i class="bi bi-arrow-down-up display-6 text-warning me-3"></i>
+                                <div>
+                                    <h6 class="mb-0 text-white fw-bold">Borrow & Return</h6>
+                                    <small class="text-secondary">Issue books or process returns</small>
+                                </div>
+                            </a>
+                        </div>
+                        <div class="col-md-6">
+                            <a href="/members" class="btn btn-outline-light w-100 p-3 text-start glass-panel d-flex align-items-center text-decoration-none">
+                                <i class="bi bi-people display-6 text-success me-3"></i>
+                                <div>
+                                    <h6 class="mb-0 text-white fw-bold">Member Accounts</h6>
+                                    <small class="text-secondary">View members & manage roles</small>
+                                </div>
+                            </a>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Total System Members Card -->
+            <div class="col-lg-4 fade-in-up" style="animation-delay: 0.3s;">
+                <div class="card glass-panel p-4 h-100 d-flex flex-column justify-content-between">
+                    <div>
+                        <h4 class="mb-3 text-white"><i class="bi bi-people-fill me-2 text-info"></i>Community</h4>
+                        <p class="text-secondary">Total registered users active across all branches.</p>
+                        <div class="text-center py-3">
+                            <span class="display-3 fw-bold text-info">@(stats?.TotalMembers ?? 0)</span>
+                            <div class="text-secondary small mt-1">Registered Library Members</div>
+                        </div>
+                    </div>
+                    <a href="/members" class="btn btn-primary premium-btn w-100 mt-3">View All Members</a>
+                </div>
+            </div>
+        </div>
+    }
+</div>
+
+@code {
+    private DashboardStatsDto? stats;
+    private bool loading = true;
+
+    protected override async Task OnInitializedAsync()
+    {
+        await LoadDashboardStats();
+    }
+
+    private async Task LoadDashboardStats()
+    {
+        loading = true;
+        try
+        {
+            stats = await Http.GetFromJsonAsync<DashboardStatsDto>("api/dashboard/stats");
+        }
+        catch (Exception ex)
+        {
+            Console.WriteLine($"Error fetching dashboard stats: {ex.Message}");
+        }
+        finally
+        {
+            loading = false;
+        }
+    }
+
+    public class DashboardStatsDto
+    {
+        public int TotalBooks { get; set; }
+        public int TotalCopies { get; set; }
+        public int AvailableCopies { get; set; }
+        public int TotalBranches { get; set; }
+        public int ActiveBorrows { get; set; }
+        public int OverdueBorrows { get; set; }
+        public int PendingReservations { get; set; }
+        public int TotalMembers { get; set; }
+    }
+}

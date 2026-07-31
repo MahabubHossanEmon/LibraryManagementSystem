@@ -1,0 +1,357 @@
+@page "/borrows"
+@inject HttpClient Http
+@inject AuthenticationStateProvider AuthStateProvider
+@using System.Net.Http.Json
+
+<PageTitle>Borrow Records - LMS</PageTitle>
+
+<div class="container fade-in-up py-4">
+    <div class="d-flex flex-column flex-md-row justify-content-between align-items-md-center mb-4 gap-3">
+        <div>
+            <h2 class="mb-1"><i class="bi bi-journal-bookmark me-2 text-warning"></i>Borrow & Return Records</h2>
+            <p class="text-secondary mb-0">Track active loans, return dates, and overdue items.</p>
+        </div>
+        <div>
+            <button class="btn btn-primary premium-btn" @onclick="OpenBorrowModal">
+                <i class="bi bi-plus-lg me-1"></i> Issue Borrow
+            </button>
+        </div>
+    </div>
+
+    @if (errorMessage != null)
+    {
+        <div class="alert alert-danger glass-panel alert-dismissible fade show mb-4" role="alert">
+            @errorMessage
+            <button type="button" class="btn-close btn-close-white" @onclick="() => errorMessage = null"></button>
+        </div>
+    }
+
+    @if (successMessage != null)
+    {
+        <div class="alert alert-success glass-panel alert-dismissible fade show mb-4" role="alert">
+            @successMessage
+            <button type="button" class="btn-close btn-close-white" @onclick="() => successMessage = null"></button>
+        </div>
+    }
+
+    <!-- Search & Filter Controls -->
+    <div class="card glass-panel p-3 mb-4">
+        <div class="row g-3 align-items-center">
+            <div class="col-md-6">
+                <div class="input-group">
+                    <span class="input-group-text bg-dark text-white border-secondary"><i class="bi bi-search"></i></span>
+                    <input type="text" class="form-control bg-dark text-white border-secondary" placeholder="Search by book title or member name..." @bind="searchQuery" @bind:event="oninput" />
+                </div>
+            </div>
+            <div class="col-md-6">
+                <div class="btn-group w-100" role="group">
+                    <button type="button" class="btn @(statusFilter == "All" ? "btn-primary" : "btn-outline-secondary")" @onclick='() => statusFilter = "All"'>All</button>
+                    <button type="button" class="btn @(statusFilter == "Borrowed" ? "btn-warning text-dark" : "btn-outline-secondary")" @onclick='() => statusFilter = "Borrowed"'>Borrowed</button>
+                    <button type="button" class="btn @(statusFilter == "Overdue" ? "btn-danger" : "btn-outline-secondary")" @onclick='() => statusFilter = "Overdue"'>Overdue</button>
+                    <button type="button" class="btn @(statusFilter == "Returned" ? "btn-success" : "btn-outline-secondary")" @onclick='() => statusFilter = "Returned"'>Returned</button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    @if (borrows == null)
+    {
+        <div class="d-flex justify-content-center py-5">
+            <div class="spinner-border text-light" role="status">
+                <span class="visually-hidden">Loading...</span>
+            </div>
+        </div>
+    }
+    else if (!FilteredBorrows.Any())
+    {
+        <div class="alert alert-info glass-panel text-center py-4">
+            <i class="bi bi-info-circle display-6 d-block mb-2 text-info"></i>
+            No borrow records found.
+        </div>
+    }
+    else
+    {
+        <div class="table-responsive glass-panel p-3 rounded">
+            <table class="table table-hover text-white align-middle mb-0">
+                <thead>
+                    <tr>
+                        <th>Book Title</th>
+                        <th>User</th>
+                        <th>Borrow Date</th>
+                        <th>Due Date</th>
+                        <th>Return Date</th>
+                        <th>Status</th>
+                        <th>Actions</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    @foreach (var record in FilteredBorrows)
+                    {
+                        <tr>
+                            <td class="fw-bold text-white">@record.BookTitle</td>
+                            <td>@record.UserName</td>
+                            <td>@record.BorrowDate.ToLocalTime().ToString("d")</td>
+                            <td>@record.DueDate.ToLocalTime().ToString("d")</td>
+                            <td>@(record.ReturnDate.HasValue ? record.ReturnDate.Value.ToLocalTime().ToString("d") : "-")</td>
+                            <td>
+                                @if (record.StatusName == "Returned")
+                                {
+                                    <span class="badge bg-success">Returned</span>
+                                }
+                                else if (record.DueDate < DateTime.UtcNow)
+                                {
+                                    <span class="badge bg-danger">Overdue</span>
+                                }
+                                else
+                                {
+                                    <span class="badge bg-warning text-dark">Borrowed</span>
+                                }
+                            </td>
+                            <td>
+                                @if (record.StatusName != "Returned")
+                                {
+                                    <button class="btn btn-sm btn-outline-success" @onclick="() => ReturnBook(record.Id)">
+                                        <i class="bi bi-arrow-return-left me-1"></i> Return
+                                    </button>
+                                }
+                                else
+                                {
+                                    <span class="text-secondary small">Completed</span>
+                                }
+                            </td>
+                        </tr>
+                    }
+                </tbody>
+            </table>
+        </div>
+    }
+</div>
+
+<!-- Issue Borrow Modal -->
+@if (showModal)
+{
+    <div class="modal fade show d-block" style="background: rgba(0,0,0,0.7);" tabindex="-1">
+        <div class="modal-dialog modal-dialog-centered">
+            <div class="modal-content glass-panel text-white">
+                <div class="modal-header border-secondary">
+                    <h5 class="modal-title"><i class="bi bi-journal-plus me-2"></i>Issue Book Borrow</h5>
+                    <button type="button" class="btn-close btn-close-white" @onclick="CloseModal"></button>
+                </div>
+                <div class="modal-body">
+                    <div class="mb-3">
+                        <label class="form-label fw-bold">Select Member</label>
+                        <select class="form-select bg-dark text-white border-secondary" @bind="selectedUserId">
+                            <option value="@Guid.Empty">-- Select Member --</option>
+                            @if (availableUsers != null)
+                            {
+                                @foreach (var user in availableUsers)
+                                {
+                                    <option value="@user.Id">@user.FullName (@user.Email)</option>
+                                }
+                            }
+                        </select>
+                    </div>
+
+                    <div class="mb-3">
+                        <label class="form-label fw-bold">Select Book</label>
+                        <select class="form-select bg-dark text-white border-secondary" @bind="selectedBookId">
+                            <option value="@Guid.Empty">-- Select Available Book --</option>
+                            @if (availableBooks != null)
+                            {
+                                @foreach (var book in availableBooks.Where(b => b.AvailableCopies > 0))
+                                {
+                                    <option value="@book.Id">@book.Title (By @book.Author - @book.AvailableCopies available)</option>
+                                }
+                            }
+                        </select>
+                    </div>
+
+                    <div class="mb-3">
+                        <label class="form-label fw-bold">Borrow Duration (Days)</label>
+                        <input type="number" class="form-control bg-dark text-white border-secondary" @bind="borrowDays" min="1" max="60" />
+                    </div>
+                </div>
+                <div class="modal-footer border-secondary">
+                    <button type="button" class="btn btn-secondary" @onclick="CloseModal">Cancel</button>
+                    <button type="button" class="btn btn-primary premium-btn" @onclick="SubmitBorrow" disabled="@(selectedBookId == Guid.Empty || selectedUserId == Guid.Empty)">
+                        Confirm Borrow
+                    </button>
+                </div>
+            </div>
+        </div>
+    </div>
+}
+
+@code {
+    private List<BorrowRecordDto>? borrows;
+    private List<BookDto>? availableBooks;
+    private List<UserDto>? availableUsers;
+
+    private string searchQuery = string.Empty;
+    private string statusFilter = "All";
+
+    private bool showModal = false;
+    private Guid selectedBookId = Guid.Empty;
+    private Guid selectedUserId = Guid.Empty;
+    private int borrowDays = 14;
+
+    private string? errorMessage;
+    private string? successMessage;
+
+    private IEnumerable<BorrowRecordDto> FilteredBorrows
+    {
+        get
+        {
+            if (borrows == null) return Enumerable.Empty<BorrowRecordDto>();
+
+            var result = borrows.AsEnumerable();
+
+            if (!string.IsNullOrWhiteSpace(searchQuery))
+            {
+                var q = searchQuery.Trim().ToLower();
+                result = result.Where(b => b.BookTitle.ToLower().Contains(q) || b.UserName.ToLower().Contains(q));
+            }
+
+            var now = DateTime.UtcNow;
+            if (statusFilter == "Borrowed")
+            {
+                result = result.Where(b => b.StatusName != "Returned" && b.DueDate >= now);
+            }
+            else if (statusFilter == "Overdue")
+            {
+                result = result.Where(b => b.StatusName != "Returned" && b.DueDate < now);
+            }
+            else if (statusFilter == "Returned")
+            {
+                result = result.Where(b => b.StatusName == "Returned");
+            }
+
+            return result;
+        }
+    }
+
+    protected override async Task OnInitializedAsync()
+    {
+        await LoadBorrows();
+    }
+
+    private async Task LoadBorrows()
+    {
+        try
+        {
+            borrows = await Http.GetFromJsonAsync<List<BorrowRecordDto>>("api/borrows");
+        }
+        catch (Exception ex)
+        {
+            errorMessage = $"Failed to load borrow records: {ex.Message}";
+            borrows = new List<BorrowRecordDto>();
+        }
+    }
+
+    private async Task OpenBorrowModal()
+    {
+        selectedBookId = Guid.Empty;
+        selectedUserId = Guid.Empty;
+        showModal = true;
+        try
+        {
+            availableBooks = await Http.GetFromJsonAsync<List<BookDto>>("api/books");
+            availableUsers = await Http.GetFromJsonAsync<List<UserDto>>("api/users");
+            if (availableUsers != null && availableUsers.Any())
+            {
+                selectedUserId = availableUsers.First().Id;
+            }
+        }
+        catch (Exception ex)
+        {
+            errorMessage = $"Failed to load modal options: {ex.Message}";
+        }
+    }
+
+    private void CloseModal()
+    {
+        showModal = false;
+    }
+
+    private async Task SubmitBorrow()
+    {
+        if (selectedBookId == Guid.Empty || selectedUserId == Guid.Empty)
+        {
+            errorMessage = "Please select a valid member and book.";
+            return;
+        }
+
+        try
+        {
+            var request = new { BookId = selectedBookId, UserId = selectedUserId, DaysToBorrow = borrowDays };
+            var response = await Http.PostAsJsonAsync("api/borrows", request);
+            if (response.IsSuccessStatusCode)
+            {
+                successMessage = "Book borrowed successfully!";
+                showModal = false;
+                await LoadBorrows();
+            }
+            else
+            {
+                var content = await response.Content.ReadAsStringAsync();
+                errorMessage = $"Error: {content}";
+            }
+        }
+        catch (Exception ex)
+        {
+            errorMessage = $"Exception borrowing book: {ex.Message}";
+        }
+    }
+
+    private async Task ReturnBook(Guid borrowId)
+    {
+        try
+        {
+            var response = await Http.PostAsync($"api/borrows/{borrowId}/return", null);
+            if (response.IsSuccessStatusCode)
+            {
+                successMessage = "Book returned successfully!";
+                await LoadBorrows();
+            }
+            else
+            {
+                var content = await response.Content.ReadAsStringAsync();
+                errorMessage = $"Error returning book: {content}";
+            }
+        }
+        catch (Exception ex)
+        {
+            errorMessage = $"Exception returning book: {ex.Message}";
+        }
+    }
+
+    public class BorrowRecordDto
+    {
+        public Guid Id { get; set; }
+        public Guid BookId { get; set; }
+        public string BookTitle { get; set; } = string.Empty;
+        public Guid UserId { get; set; }
+        public string UserName { get; set; } = string.Empty;
+        public DateTime BorrowDate { get; set; }
+        public DateTime DueDate { get; set; }
+        public DateTime? ReturnDate { get; set; }
+        public string StatusName { get; set; } = string.Empty;
+    }
+
+    public class BookDto
+    {
+        public Guid Id { get; set; }
+        public string Title { get; set; } = string.Empty;
+        public string Author { get; set; } = string.Empty;
+        public int AvailableCopies { get; set; }
+    }
+
+    public class UserDto
+    {
+        public Guid Id { get; set; }
+        public string Email { get; set; } = string.Empty;
+        public string FirstName { get; set; } = string.Empty;
+        public string LastName { get; set; } = string.Empty;
+        public string FullName => $"{FirstName} {LastName}".Trim();
+    }
+}

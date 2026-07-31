@@ -1,0 +1,85 @@
+@page "/login"
+@inject LibraryManagementSystem.Web.Client.Services.AuthService AuthService
+@inject NavigationManager NavigationManager
+
+<PageTitle>Login - LMS</PageTitle>
+
+<div class="auth-container">
+    <div class="auth-card glass-panel fade-in-up">
+        <div class="auth-header">
+            <h2>Welcome Back</h2>
+            <p>Login to your account to continue</p>
+        </div>
+
+        @if (!string.IsNullOrEmpty(errorMessage))
+        {
+            <div class="alert alert-danger" role="alert">
+                @errorMessage
+            </div>
+        }
+
+        <EditForm Model="@loginModel" OnValidSubmit="HandleLogin" class="auth-form">
+            <DataAnnotationsValidator />
+            
+            <div class="form-group">
+                <label for="email">Email</label>
+                <InputText id="email" class="form-control premium-input" @bind-Value="loginModel.Email" placeholder="name@example.com" />
+                <ValidationMessage For="@(() => loginModel.Email)" />
+            </div>
+
+            <div class="form-group mt-3">
+                <label for="password">Password</label>
+                <InputText type="password" id="password" class="form-control premium-input" @bind-Value="loginModel.Password" placeholder="••••••••" />
+                <ValidationMessage For="@(() => loginModel.Password)" />
+            </div>
+
+            <button type="submit" class="btn btn-primary premium-btn mt-4 w-100" disabled="@isLoading">
+                @if (isLoading)
+                {
+                    <span class="spinner-border spinner-border-sm" role="status" aria-hidden="true"></span>
+                    <span> Authenticating...</span>
+                }
+                else
+                {
+                    <span>Login</span>
+                }
+            </button>
+        </EditForm>
+        <div class="auth-footer mt-4 text-center">
+            <p>Don't have an account? <a href="/register" class="premium-link">Register here</a></p>
+        </div>
+    </div>
+</div>
+
+@code {
+    private LoginModel loginModel = new();
+    private bool isLoading;
+    private string? errorMessage;
+
+    private async Task HandleLogin()
+    {
+        isLoading = true;
+        errorMessage = null;
+        
+        var success = await AuthService.LoginAsync(loginModel.Email, loginModel.Password);
+        if (success)
+        {
+            NavigationManager.NavigateTo("/");
+        }
+        else
+        {
+            errorMessage = "Invalid email or password.";
+        }
+        isLoading = false;
+    }
+
+    public class LoginModel
+    {
+        [System.ComponentModel.DataAnnotations.Required]
+        [System.ComponentModel.DataAnnotations.EmailAddress]
+        public string Email { get; set; } = string.Empty;
+
+        [System.ComponentModel.DataAnnotations.Required]
+        public string Password { get; set; } = string.Empty;
+    }
+}

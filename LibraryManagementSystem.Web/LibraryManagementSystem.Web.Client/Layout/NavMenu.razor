@@ -1,0 +1,76 @@
+@inject LibraryManagementSystem.Web.Client.Services.AuthService AuthService
+@inject NavigationManager NavigationManager
+@using Microsoft.AspNetCore.Components.Authorization
+
+<nav class="navbar navbar-expand-lg navbar-dark px-4 py-3">
+    <div class="container-fluid">
+        <a class="navbar-brand font-weight-bold" href="/">
+            <i class="bi bi-book-half me-2"></i> LMS
+        </a>
+        <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target="#navbarNav" aria-controls="navbarNav" aria-expanded="false" aria-label="Toggle navigation">
+            <span class="navbar-toggler-icon"></span>
+        </button>
+        <div class="collapse navbar-collapse" id="navbarNav">
+            <ul class="navbar-nav me-auto mb-2 mb-lg-0">
+                <li class="nav-item">
+                    <NavLink class="nav-link" href="/" Match="NavLinkMatch.All">
+                        <i class="bi bi-speedometer2 me-1"></i> Dashboard
+                    </NavLink>
+                </li>
+                <li class="nav-item">
+                    <NavLink class="nav-link" href="books">
+                        <i class="bi bi-book me-1"></i> Books
+                    </NavLink>
+                </li>
+                <li class="nav-item">
+                    <NavLink class="nav-link" href="branches">
+                        <i class="bi bi-building me-1"></i> Branches
+                    </NavLink>
+                </li>
+                <li class="nav-item">
+                    <NavLink class="nav-link" href="borrows">
+                        <i class="bi bi-journal-bookmark me-1"></i> Borrows
+                    </NavLink>
+                </li>
+                <li class="nav-item">
+                    <NavLink class="nav-link" href="reservations">
+                        <i class="bi bi-bookmark-star me-1"></i> Reservations
+                    </NavLink>
+                </li>
+                <li class="nav-item">
+                    <NavLink class="nav-link" href="members">
+                        <i class="bi bi-people me-1"></i> Members
+                    </NavLink>
+                </li>
+            </ul>
+            <ul class="navbar-nav">
+                <AuthorizeView>
+                    <Authorized>
+                        <li class="nav-item me-3 d-flex align-items-center">
+                            <span class="text-light"><i class="bi bi-person-circle me-1"></i> @context.User.Identity?.Name</span>
+                        </li>
+                        <li class="nav-item">
+                            <button class="btn btn-outline-light premium-btn" style="padding: 0.5rem 1rem;" @onclick="HandleLogout">Logout</button>
+                        </li>
+                    </Authorized>
+                    <NotAuthorized>
+                        <li class="nav-item me-2">
+                            <a class="nav-link" href="login">Login</a>
+                        </li>
+                        <li class="nav-item">
+                            <a class="btn btn-primary premium-btn" style="padding: 0.5rem 1rem;" href="register">Sign Up</a>
+                        </li>
+                    </NotAuthorized>
+                </AuthorizeView>
+            </ul>
+        </div>
+    </div>
+</nav>
+
+@code {
+    private async Task HandleLogout()
+    {
+        await AuthService.LogoutAsync();
+        NavigationManager.NavigateTo("/login");
+    }
+}
