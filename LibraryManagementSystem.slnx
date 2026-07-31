@@ -3,6 +3,7 @@
     <Project Path="LibraryManagementSystem.Web/LibraryManagementSystem.Web.Client/LibraryManagementSystem.Web.Client.csproj" />
     <Project Path="LibraryManagementSystem.Web/LibraryManagementSystem.Web/LibraryManagementSystem.Web.csproj" />
   </Folder>
+  <Project Path="frontend/frontend.esproj" />
   <Project Path="LibraryManagementSystem.Api/LibraryManagementSystem.Api.csproj" />
   <Project Path="LibraryManagementSystem.Application/LibraryManagementSystem.Application.csproj" />
   <Project Path="LibraryManagementSystem.Domain/LibraryManagementSystem.Domain.csproj" />
