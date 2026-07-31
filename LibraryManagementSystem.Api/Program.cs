@@ -130,12 +130,12 @@ if (app.Environment.IsDevelopment())
     app.UseSwaggerUI(c => c.SwaggerEndpoint("/openapi/v1.json", "LibraryManagementSystem API v1"));
 }
 
+app.UseMiddleware<LibraryManagementSystem.Api.Middleware.GlobalExceptionMiddleware>();
+
 app.UseCors("AllowAll");
 
-app.UseHttpsRedirection();
-
-// app.UseAuthentication();
-// app.UseAuthorization();
+app.UseAuthentication();
+app.UseAuthorization();
 
 app.MapControllers();
 app.MapGet("/", () => Results.Redirect("/swagger"));
