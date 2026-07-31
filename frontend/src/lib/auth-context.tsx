@@ -64,10 +64,10 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     }
   }, []);
 
-  const login = useCallback(async (email: string, passwordHash: string) => {
+  const login = useCallback(async (email: string, password: string) => {
     setIsLoading(true);
     try {
-      const res: AuthResponseDto = await api.login({ email, passwordHash });
+      const res: AuthResponseDto = await api.login({ email, password });
       const authUser: AuthUser = {
         userId: res.userId,
         email: res.email,
@@ -82,7 +82,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
       const matchedDemo = Object.values(DEMO_USERS).find(
         (u) => u.email.toLowerCase() === email.trim().toLowerCase()
       );
-      if (matchedDemo && (passwordHash === 'admin123' || passwordHash === 'demo123' || passwordHash === 'password')) {
+      if (matchedDemo && (password === 'admin123' || password === 'demo123' || password === 'password')) {
         const demoToken = `demo-token-${matchedDemo.role.toLowerCase()}`;
         setToken(demoToken);
         setUser(matchedDemo);

@@ -57,13 +57,13 @@ async function request<T>(endpoint: string, options: RequestInit = {}): Promise<
 
 export const api = {
   // Auth
-  login: (credentials: { email: string; passwordHash: string }) =>
+  login: (credentials: { email: string; password: string }) =>
     request<AuthResponseDto>('/auth/login', {
       method: 'POST',
       body: JSON.stringify(credentials),
     }),
 
-  register: (data: { email: string; passwordHash: string; firstName: string; lastName: string; role: Role }) =>
+  register: (data: { email: string; password: string; firstName: string; lastName: string; role: Role }) =>
     request<{ userId: string }>('/auth/register', {
       method: 'POST',
       body: JSON.stringify(data),
@@ -139,6 +139,10 @@ export const api = {
     }),
   cancelReservation: (reservationId: string) =>
     request<{ success: boolean; message: string }>(`/reservations/${reservationId}/cancel`, {
+      method: 'POST',
+    }),
+  fulfillReservation: (reservationId: string) =>
+    request<{ success: boolean; message: string }>(`/reservations/${reservationId}/fulfill`, {
       method: 'POST',
     }),
 };

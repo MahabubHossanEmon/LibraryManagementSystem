@@ -3,7 +3,7 @@
 import React, { useState } from 'react';
 import { useRouter } from 'next/navigation';
 import Link from 'next/link';
-import { Library, Lock, Mail, User, ArrowRight } from 'lucide-react';
+import { Library, Lock, Mail, User, ArrowRight, AlertCircle } from 'lucide-react';
 import { api } from '@/lib/api-client';
 import { useToast } from '@/components/toast';
 import { Role } from '@/lib/types';
@@ -18,22 +18,25 @@ export default function RegisterPage() {
   const [password, setPassword] = useState('');
   const [role, setRole] = useState<Role>('Member');
   const [isSubmitting, setIsSubmitting] = useState(false);
+  const [errorMsg, setErrorMsg] = useState<string | null>(null);
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
+    setErrorMsg(null);
     try {
       setIsSubmitting(true);
       await api.register({
         firstName,
         lastName,
         email,
-        passwordHash: password,
+        password,
         role,
       });
       showToast('Registration successful! Please sign in.', 'success');
       router.push('/login');
     } catch (err: unknown) {
-      const msg = err instanceof Error ? err.message : 'Registration failed';
+      const msg = err instanceof Error ? err.message : 'Registration failed. Please check your information.';
+      setErrorMsg(msg);
       showToast(msg, 'error');
     } finally {
       setIsSubmitting(false);
@@ -49,6 +52,16 @@ export default function RegisterPage() {
         <h1 className="text-2xl font-extrabold text-white tracking-tight">Create Library Account</h1>
         <p className="text-xs text-zinc-400">Join the enterprise library portal</p>
       </div>
+
+      {errorMsg && (
+        <div className="bg-rose-500/10 border border-rose-500/30 rounded-2xl p-4 flex items-start gap-3 text-rose-400 animate-in fade-in slide-in-from-top-1">
+          <AlertCircle className="w-5 h-5 shrink-0 mt-0.5" />
+          <div className="text-xs space-y-1">
+            <p className="font-bold text-rose-300">Registration Failed</p>
+            <p className="text-rose-400/90 leading-relaxed">{errorMsg}</p>
+          </div>
+        </div>
+      )}
 
       <form onSubmit={handleSubmit} className="bg-zinc-900/80 border border-zinc-800 rounded-2xl p-6 space-y-4 shadow-xl">
         <div className="grid grid-cols-2 gap-3">

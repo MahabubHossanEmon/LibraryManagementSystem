@@ -44,4 +44,12 @@ public class ReservationsController : ControllerBase
         if (!success) return NotFound();
         return Ok(new { success, message = "Reservation cancelled successfully." });
     }
+
+    [HttpPost("{id:guid}/fulfill")]
+    public async Task<IActionResult> Fulfill(Guid id)
+    {
+        var success = await _mediator.Send(new FulfillReservationCommand(id));
+        if (!success) return NotFound();
+        return Ok(new { success, message = "Reservation approved and fulfilled successfully." });
+    }
 }
