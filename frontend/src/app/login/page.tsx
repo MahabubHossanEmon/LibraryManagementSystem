@@ -10,11 +10,11 @@ import { Role } from '@/lib/types';
 
 export default function LoginPage() {
   const router = useRouter();
-  const { login, loginDemo } = useAuth();
+  const { login } = useAuth();
   const { showToast } = useToast();
 
-  const [email, setEmail] = useState('admin@lms.com');
-  const [password, setPassword] = useState('admin123');
+  const [email, setEmail] = useState('');
+  const [password, setPassword] = useState('');
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [errorMsg, setErrorMsg] = useState<string | null>(null);
 
@@ -42,12 +42,6 @@ export default function LoginPage() {
     }
   };
 
-  const handleDemoClick = (role: Role) => {
-    loginDemo(role);
-    showToast(`Signed in as ${role} (Demo Account)`, 'success');
-    router.push('/');
-  };
-
   return (
     <div className="w-full max-w-md space-y-6">
       <div className="text-center space-y-2">
@@ -55,27 +49,7 @@ export default function LoginPage() {
           <Library className="w-7 h-7" />
         </div>
         <h1 className="text-2xl font-extrabold text-white tracking-tight">Sign In to Library Core</h1>
-        <p className="text-xs text-zinc-400">Enterprise Clean Architecture Portal</p>
-      </div>
-
-      {/* Quick Demo Sign In Buttons */}
-      <div className="bg-zinc-900/90 border border-zinc-800 rounded-2xl p-4 space-y-3">
-        <p className="text-xs font-semibold text-zinc-400 text-center uppercase tracking-wider">
-          Instant Demo One-Click Sign In
-        </p>
-        <div className="grid grid-cols-3 gap-2">
-          {(['Admin', 'Librarian', 'Member'] as Role[]).map((role) => (
-            <button
-              key={role}
-              onClick={() => handleDemoClick(role)}
-              type="button"
-              className="py-2.5 px-3 rounded-xl bg-zinc-950 hover:bg-indigo-600/20 hover:border-indigo-500/40 border border-zinc-800 text-xs font-bold text-zinc-200 transition-all flex flex-col items-center gap-1 group"
-            >
-              <KeyRound className="w-4 h-4 text-indigo-400 group-hover:scale-110 transition-transform" />
-              <span>{role}</span>
-            </button>
-          ))}
-        </div>
+        <p className="text-xs text-zinc-400 font-medium">Enterprise Clean Architecture Portal</p>
       </div>
 
       {/* Error Alert Banner */}

@@ -5,8 +5,10 @@ import { Clock, Search, XCircle, CheckCircle2 } from 'lucide-react';
 import { api } from '@/lib/api-client';
 import { ReservationDto } from '@/lib/types';
 import { useToast } from '@/components/toast';
+import { useAuth } from '@/lib/auth-context';
 
 export default function ReservationsPage() {
+  const { user } = useAuth();
   const { showToast } = useToast();
 
   const [reservations, setReservations] = useState<ReservationDto[]>([]);
@@ -16,7 +18,12 @@ export default function ReservationsPage() {
   const loadReservations = async () => {
     try {
       setIsLoading(true);
-      const res = await api.getReservations();
+      let res: ReservationDto[] = [];
+      if (user?.role === 'Member' && user?.userId) {
+        res = await api.getUserReservations(user.userId);
+      } else {
+        res = await api.getReservations();
+      }
       setReservations(res);
     } catch (err: unknown) {
       // Fallback demo reservations
@@ -160,13 +167,15 @@ export default function ReservationsPage() {
                       <td className="px-6 py-4 text-right">
                         {isPending ? (
                           <div className="flex items-center justify-end gap-2">
-                            <button
-                              onClick={() => handleApprove(r.id)}
-                              className="px-3 py-1.5 rounded-lg bg-emerald-500/10 hover:bg-emerald-500/20 text-emerald-400 border border-emerald-500/20 text-xs font-semibold transition-colors inline-flex items-center gap-1 shadow-sm"
-                            >
-                              <CheckCircle2 className="w-3.5 h-3.5" />
-                              <span>Approve</span>
-                            </button>
+                            {(user?.role === 'Admin' || user?.role === 'Librarian') && (
+                              <button
+                                onClick={() => handleApprove(r.id)}
+                                className="px-3 py-1.5 rounded-lg bg-emerald-500/10 hover:bg-emerald-500/20 text-emerald-400 border border-emerald-500/20 text-xs font-semibold transition-colors inline-flex items-center gap-1 shadow-sm"
+                              >
+                                <CheckCircle2 className="w-3.5 h-3.5" />
+                                <span>Approve</span>
+                              </button>
+                            )}
                             <button
                               onClick={() => handleCancel(r.id)}
                               className="px-3 py-1.5 rounded-lg bg-rose-500/10 hover:bg-rose-500/20 text-rose-400 border border-rose-500/20 text-xs font-semibold transition-colors inline-flex items-center gap-1"

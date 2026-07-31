@@ -34,7 +34,29 @@ public class LoginUserCommandHandler : IRequestHandler<LoginUserCommand, AuthRes
     {
         var user = (await _userRepository.FindAsync(u => u.Email == request.Email)).FirstOrDefault();
         
-        if (user == null || !BCrypt.Net.BCrypt.Verify(request.Password, user.PasswordHash))
+        if (user == null)
+        {
+            throw new UnauthorizedAccessException("Invalid credentials.");
+        }
+
+        bool isValidPassword = false;
+        try
+        {
+            isValidPassword = BCrypt.Net.BCrypt.Verify(request.Password, user.PasswordHash);
+        }
+        catch (BCrypt.Net.SaltParseException)
+        {
+            // Gracefully handle legacy unhashed seed passwords and auto-upgrade to BCrypt
+            if (request.Password == user.PasswordHash)
+            {
+                isValidPassword = true;
+                user.PasswordHash = BCrypt.Net.BCrypt.HashPassword(request.Password);
+                await _userRepository.UpdateAsync(user);
+                await _userRepository.SaveChangesAsync();
+            }
+        }
+
+        if (!isValidPassword)
         {
             throw new UnauthorizedAccessException("Invalid credentials.");
         }

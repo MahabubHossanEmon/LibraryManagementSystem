@@ -38,9 +38,9 @@ const NAV_ITEMS: NavItem[] = [
 
 export function Sidebar() {
   const pathname = usePathname();
-  const { user, logout, loginDemo } = useAuth();
+  const { user, logout } = useAuth();
 
-  const userRole = user?.role || 'Admin';
+  const userRole = user?.role || 'Member';
 
   const visibleItems = NAV_ITEMS.filter((item) => item.roles.includes(userRole));
 
@@ -65,31 +65,11 @@ export function Sidebar() {
               {userRole === 'Admin' ? <ShieldCheck className="w-4 h-4" /> : <UserCheck className="w-4 h-4" />}
             </div>
             <div className="truncate">
-              <p className="text-xs font-semibold text-zinc-200 truncate">{user?.email || 'Guest'}</p>
+              <p className="text-xs font-semibold text-zinc-200 truncate">{user?.email || 'User'}</p>
               <span className="inline-block text-[10px] uppercase font-bold text-indigo-400 tracking-wider">
-                {userRole} Mode
+                {userRole} Account
               </span>
             </div>
-          </div>
-        </div>
-
-        {/* Quick Role Switcher for Demo */}
-        <div className="space-y-1">
-          <p className="text-[10px] uppercase font-bold text-zinc-500 tracking-wider px-2">Switch Active Role</p>
-          <div className="grid grid-cols-3 gap-1 bg-zinc-950 p-1 rounded-lg border border-zinc-800/60">
-            {(['Admin', 'Librarian', 'Member'] as Role[]).map((r) => (
-              <button
-                key={r}
-                onClick={() => loginDemo(r)}
-                className={`py-1 text-[11px] font-medium rounded-md transition-all ${
-                  userRole === r
-                    ? 'bg-indigo-600 text-white font-semibold shadow-sm'
-                    : 'text-zinc-400 hover:text-zinc-200 hover:bg-zinc-800/50'
-                }`}
-              >
-                {r}
-              </button>
-            ))}
           </div>
         </div>
 

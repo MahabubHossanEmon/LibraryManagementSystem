@@ -85,7 +85,7 @@ using (var scope = app.Services.CreateScope())
             {
                 Id = Guid.Parse("00000000-0000-0000-0000-000000000001"),
                 Email = "admin@lms.com",
-                PasswordHash = "admin123",
+                PasswordHash = BCrypt.Net.BCrypt.HashPassword("admin123"),
                 FirstName = "Admin",
                 LastName = "User",
                 Role = LibraryManagementSystem.Domain.Enums.Role.Admin

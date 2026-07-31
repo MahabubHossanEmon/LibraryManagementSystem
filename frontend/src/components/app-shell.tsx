@@ -5,19 +5,26 @@ import { usePathname, useRouter } from 'next/navigation';
 import { Sidebar } from './sidebar';
 import { Navbar } from './navbar';
 import { useAuth } from '@/lib/auth-context';
+import { useToast } from '@/components/toast';
 import { Library } from 'lucide-react';
 
 export function AppShell({ children }: { children: React.ReactNode }) {
   const pathname = usePathname();
   const router = useRouter();
-  const { isAuthenticated, isLoading } = useAuth();
+  const { isAuthenticated, isLoading, user } = useAuth();
+  const { showToast } = useToast();
   const isAuthPage = pathname === '/login' || pathname === '/register';
 
   useEffect(() => {
     if (!isLoading && !isAuthenticated && !isAuthPage) {
       router.replace('/login');
+    } else if (!isLoading && isAuthenticated && user?.role === 'Member') {
+      if (pathname === '/members' || pathname === '/reports') {
+        showToast('Access Denied: Admin or Librarian permissions required.', 'error');
+        router.replace('/');
+      }
     }
-  }, [isLoading, isAuthenticated, isAuthPage, router]);
+  }, [isLoading, isAuthenticated, isAuthPage, user, pathname, router, showToast]);
 
   if (isLoading) {
     return (

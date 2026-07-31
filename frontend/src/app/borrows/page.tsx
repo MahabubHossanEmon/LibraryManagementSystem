@@ -19,7 +19,12 @@ export default function BorrowsPage() {
   const loadBorrows = async () => {
     try {
       setIsLoading(true);
-      const res = await api.getBorrows();
+      let res: BorrowRecordDto[] = [];
+      if (user?.role === 'Member' && user?.userId) {
+        res = await api.getUserBorrows(user.userId);
+      } else {
+        res = await api.getBorrows();
+      }
       setRecords(res);
     } catch (err: unknown) {
       // Fallback demo records
