@@ -1,8 +1,4 @@
 <Solution>
-  <Folder Name="/LibraryManagementSystem.Web/">
-    <Project Path="LibraryManagementSystem.Web/LibraryManagementSystem.Web.Client/LibraryManagementSystem.Web.Client.csproj" />
-    <Project Path="LibraryManagementSystem.Web/LibraryManagementSystem.Web/LibraryManagementSystem.Web.csproj" />
-  </Folder>
   <Project Path="frontend/frontend.esproj">
     <Build />
     <Deploy />

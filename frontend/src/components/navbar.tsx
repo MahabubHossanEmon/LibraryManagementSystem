@@ -4,6 +4,7 @@ import React from 'react';
 import { usePathname } from 'next/navigation';
 import { ShieldCheck, Activity, Bell, Search } from 'lucide-react';
 import { useAuth } from '@/lib/auth-context';
+import { NotificationDropdown } from '@/components/notification-dropdown';
 
 const ROUTE_TITLES: Record<string, { title: string; subtitle: string }> = {
   '/': { title: 'System Overview Dashboard', subtitle: 'Live metrics, active loans & inventory summary' },
@@ -53,14 +54,8 @@ export function Navbar() {
           />
         </div>
 
-        {/* Notification Bell */}
-        <button
-          className="w-10 h-10 rounded-xl bg-zinc-900 border border-zinc-800 flex items-center justify-center text-zinc-400 hover:text-white transition-colors relative"
-          aria-label="Notifications"
-        >
-          <Bell className="w-4 h-4" />
-          <span className="absolute top-2.5 right-2.5 w-2 h-2 rounded-full bg-indigo-500"></span>
-        </button>
+        {/* Interactive Notification Center Dropdown */}
+        <NotificationDropdown />
 
         {/* User Profile Badge */}
         <div className="flex items-center gap-3 pl-2 border-l border-zinc-800">

@@ -5,6 +5,7 @@ import { BookOpen, Plus, Search, Filter, Edit, Trash2, BookmarkCheck, Clock, Bui
 import { api } from '@/lib/api-client';
 import { BookDto, BranchDto } from '@/lib/types';
 import { Modal } from '@/components/modal';
+import { ConfirmModal } from '@/components/confirm-modal';
 import { useToast } from '@/components/toast';
 import { useAuth } from '@/lib/auth-context';
 
@@ -21,6 +22,8 @@ export default function BooksPage() {
   // Modal States
   const [isCreateOpen, setIsCreateOpen] = useState(false);
   const [editingBook, setEditingBook] = useState<BookDto | null>(null);
+  const [deletingBook, setDeletingBook] = useState<BookDto | null>(null);
+  const [isDeleting, setIsDeleting] = useState(false);
 
   // Form Fields
   const [title, setTitle] = useState('');
@@ -123,15 +126,19 @@ export default function BooksPage() {
     }
   };
 
-  const handleDeleteBook = async (id: string) => {
-    if (!confirm('Are you sure you want to delete this book?')) return;
+  const confirmDeleteBook = async () => {
+    if (!deletingBook) return;
     try {
-      await api.deleteBook(id);
-      showToast('Book deleted successfully', 'success');
+      setIsDeleting(true);
+      await api.deleteBook(deletingBook.id);
+      showToast(`Book "${deletingBook.title}" deleted successfully`, 'success');
+      setDeletingBook(null);
       loadData();
     } catch (err: unknown) {
       const msg = err instanceof Error ? err.message : 'Failed to delete book';
       showToast(msg, 'error');
+    } finally {
+      setIsDeleting(false);
     }
   };
 
@@ -337,7 +344,7 @@ export default function BooksPage() {
                               <Edit className="w-4 h-4 text-indigo-400" />
                             </button>
                             <button
-                              onClick={() => handleDeleteBook(book.id)}
+                              onClick={() => setDeletingBook(book)}
                               title="Delete Book"
                               className="p-1.5 rounded-lg bg-zinc-800 hover:bg-rose-500/20 text-rose-400 transition-colors"
                             >
@@ -480,6 +487,20 @@ export default function BooksPage() {
           </div>
         </form>
       </Modal>
+
+      {/* Delete Confirmation Modal */}
+      <ConfirmModal
+        isOpen={!!deletingBook}
+        onClose={() => setDeletingBook(null)}
+        onConfirm={confirmDeleteBook}
+        title="Delete Book Record"
+        message="Are you sure you want to delete this book?"
+        itemName={deletingBook?.title}
+        itemDetails={deletingBook ? `Author: ${deletingBook.author} • ISBN: ${deletingBook.isbn}` : undefined}
+        warningText="This action is permanent and cannot be undone. The book record, stock copy counts, and active hold queue positions will be permanently erased."
+        confirmText="Delete Book"
+        isLoading={isDeleting}
+      />
     </div>
   );
 }

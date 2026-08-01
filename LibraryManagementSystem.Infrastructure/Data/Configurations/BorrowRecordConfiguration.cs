@@ -11,11 +11,11 @@ public class BorrowRecordConfiguration : IEntityTypeConfiguration<BorrowRecord>
         builder.HasOne(br => br.Book)
             .WithMany(b => b.BorrowRecords)
             .HasForeignKey(br => br.BookId)
-            .OnDelete(DeleteBehavior.Restrict);
+            .OnDelete(DeleteBehavior.Cascade);
             
         builder.HasOne(br => br.User)
             .WithMany(u => u.BorrowRecords)
             .HasForeignKey(br => br.UserId)
-            .OnDelete(DeleteBehavior.Restrict);
+            .OnDelete(DeleteBehavior.Cascade);
     }
 }

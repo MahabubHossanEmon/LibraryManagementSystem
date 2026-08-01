@@ -8,20 +8,48 @@ public record DeleteBranchCommand(Guid Id) : IRequest<bool>;
 
 public class DeleteBranchCommandHandler : IRequestHandler<DeleteBranchCommand, bool>
 {
-    private readonly IRepository<Branch> _repository;
+    private readonly IRepository<Branch> _branchRepository;
+    private readonly IRepository<Book> _bookRepository;
+    private readonly IRepository<BorrowRecord> _borrowRepository;
+    private readonly IRepository<Reservation> _reservationRepository;
 
-    public DeleteBranchCommandHandler(IRepository<Branch> repository)
+    public DeleteBranchCommandHandler(
+        IRepository<Branch> branchRepository,
+        IRepository<Book> bookRepository,
+        IRepository<BorrowRecord> borrowRepository,
+        IRepository<Reservation> reservationRepository)
     {
-        _repository = repository;
+        _branchRepository = branchRepository;
+        _bookRepository = bookRepository;
+        _borrowRepository = borrowRepository;
+        _reservationRepository = reservationRepository;
     }
 
     public async Task<bool> Handle(DeleteBranchCommand request, CancellationToken cancellationToken)
     {
-        var branch = await _repository.GetByIdAsync(request.Id);
+        var branch = await _branchRepository.GetByIdAsync(request.Id);
         if (branch == null) return false;
 
-        await _repository.DeleteAsync(branch);
-        await _repository.SaveChangesAsync();
+        var books = await _bookRepository.FindAsync(b => b.BranchId == request.Id);
+        foreach (var book in books)
+        {
+            var borrows = await _borrowRepository.FindAsync(br => br.BookId == book.Id);
+            foreach (var br in borrows)
+            {
+                await _borrowRepository.DeleteAsync(br);
+            }
+
+            var reservations = await _reservationRepository.FindAsync(r => r.BookId == book.Id);
+            foreach (var r in reservations)
+            {
+                await _reservationRepository.DeleteAsync(r);
+            }
+
+            await _bookRepository.DeleteAsync(book);
+        }
+
+        await _branchRepository.DeleteAsync(branch);
+        await _branchRepository.SaveChangesAsync();
 
         return true;
     }

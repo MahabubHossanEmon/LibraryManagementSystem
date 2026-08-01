@@ -10,6 +10,9 @@ const inter = Inter({ subsets: ['latin'] });
 export const metadata: Metadata = {
   title: 'Enterprise Library Management System',
   description: 'High-performance Clean Architecture Library Management Portal',
+  icons: {
+    icon: '/icon.svg',
+  },
 };
 
 export default function RootLayout({

@@ -5,6 +5,7 @@ import { Building2, Plus, Phone, MapPin, Edit, Trash2, Library } from 'lucide-re
 import { api } from '@/lib/api-client';
 import { BranchDto } from '@/lib/types';
 import { Modal } from '@/components/modal';
+import { ConfirmModal } from '@/components/confirm-modal';
 import { useToast } from '@/components/toast';
 import { useAuth } from '@/lib/auth-context';
 
@@ -18,6 +19,8 @@ export default function BranchesPage() {
   // Modal State
   const [isCreateOpen, setIsCreateOpen] = useState(false);
   const [editingBranch, setEditingBranch] = useState<BranchDto | null>(null);
+  const [deletingBranch, setDeletingBranch] = useState<BranchDto | null>(null);
+  const [isDeleting, setIsDeleting] = useState(false);
 
   // Form state
   const [name, setName] = useState('');
@@ -88,15 +91,19 @@ export default function BranchesPage() {
     }
   };
 
-  const handleDeleteBranch = async (id: string) => {
-    if (!confirm('Are you sure you want to delete this branch location?')) return;
+  const confirmDeleteBranch = async () => {
+    if (!deletingBranch) return;
     try {
-      await api.deleteBranch(id);
-      showToast('Branch removed successfully', 'success');
+      setIsDeleting(true);
+      await api.deleteBranch(deletingBranch.id);
+      showToast(`Branch "${deletingBranch.name}" deleted successfully`, 'success');
+      setDeletingBranch(null);
       loadBranches();
     } catch (err: unknown) {
       const msg = err instanceof Error ? err.message : 'Failed to delete branch';
       showToast(msg, 'error');
+    } finally {
+      setIsDeleting(false);
     }
   };
 
@@ -163,7 +170,7 @@ export default function BranchesPage() {
                       <Edit className="w-4 h-4" />
                     </button>
                     <button
-                      onClick={() => handleDeleteBranch(b.id)}
+                      onClick={() => setDeletingBranch(b)}
                       className="p-1.5 rounded-lg hover:bg-rose-500/20 text-zinc-400 hover:text-rose-400 transition-colors"
                       title="Delete Branch"
                     >
@@ -261,6 +268,20 @@ export default function BranchesPage() {
           </div>
         </form>
       </Modal>
+
+      {/* Delete Confirmation Modal */}
+      <ConfirmModal
+        isOpen={!!deletingBranch}
+        onClose={() => setDeletingBranch(null)}
+        onConfirm={confirmDeleteBranch}
+        title="Delete Branch Location"
+        message="Are you sure you want to delete this branch location?"
+        itemName={deletingBranch?.name}
+        itemDetails={deletingBranch ? `Address: ${deletingBranch.address} • Contact: ${deletingBranch.contactNumber}` : undefined}
+        warningText="This action is permanent. Deleting this branch hub will remove all associated location data and physical inventory mappings."
+        confirmText="Delete Branch"
+        isLoading={isDeleting}
+      />
     </div>
   );
 }
