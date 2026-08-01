@@ -145,4 +145,7 @@ export const api = {
     request<{ success: boolean; message: string }>(`/reservations/${reservationId}/fulfill`, {
       method: 'POST',
     }),
+
+  // Reports
+  getReports: () => request<any>('/reports'),
 };

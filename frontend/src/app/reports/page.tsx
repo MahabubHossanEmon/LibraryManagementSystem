@@ -13,19 +13,24 @@ export default function ReportsPage() {
   useEffect(() => {
     async function loadStats() {
       try {
-        const data = await api.getDashboardStats();
-        setStats(data);
+        const reportsData = await api.getReports();
+        setStats(reportsData);
       } catch {
-        setStats({
-          totalBooks: 42,
-          totalCopies: 180,
-          availableCopies: 142,
-          totalBranches: 4,
-          activeBorrows: 28,
-          overdueBorrows: 3,
-          pendingReservations: 7,
-          totalMembers: 156,
-        });
+        try {
+          const data = await api.getDashboardStats();
+          setStats(data);
+        } catch {
+          setStats({
+            totalBooks: 42,
+            totalCopies: 180,
+            availableCopies: 142,
+            totalBranches: 4,
+            activeBorrows: 28,
+            overdueBorrows: 3,
+            pendingReservations: 7,
+            totalMembers: 156,
+          });
+        }
       }
     }
     loadStats();
